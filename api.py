@@ -10,7 +10,7 @@ app = FastAPI(title="VVQuest API")
 
 # 初始化核心组件
 config = Config()
-search_engine = ImageSearch(mode='api', model_name=config.models.default_model)
+search_engine = ImageSearch()
 
 # 数据模型定义
 class SearchRequest(BaseModel):
@@ -50,8 +50,8 @@ async def generate_cache(background_tasks: BackgroundTasks):
 async def get_config():
     """获取当前配置"""
     return {
-        "mode": search_engine.mode,
-        "model": search_engine.model_name,
+        "mode": search_engine.get_mode(),
+        "model": search_engine.get_model_name(),
         "api_key": config.api.embedding_models.api_key,
         "base_url": config.api.embedding_models.base_url
     }
@@ -107,10 +107,10 @@ async def switch_mode(mode: str):
 
 @app.put("/model/{model_id}")
 async def switch_model(model_id: str):
-    """切换本地模型（修复版）"""
+    """切换本地模型"""
     try:
         # 增加模式验证
-        if search_engine.mode != 'local':
+        if search_engine.get_mode() != 'local':
             raise HTTPException(
                 status_code=400, 
                 detail="必须先切换到本地模式再切换模型"
@@ -130,16 +130,10 @@ async def switch_model(model_id: str):
                 detail=f"模型 {model_id} 尚未下载"
             )
 
-        # 增加设备检测
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        search_engine.embedding_service.device = device
+        # 为什么mode和model设置放一起了啊......
+        search_engine.set_mode('local', model_id)
 
-        # 执行切换（增加显存清理）
-        with torch.no_grad():
-            torch.cuda.empty_cache()  # 清理显存
-            search_engine.set_mode('local', model_id)
-
-        return {"message": f"成功切换到模型 {model_id} (device: {device})"}
+        return {"message": f"成功切换到模型 {model_id} "}
     
     except HTTPException as he:
         raise he  # 传递已处理的错误

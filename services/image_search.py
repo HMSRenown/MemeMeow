@@ -69,6 +69,14 @@ class ImageSearch:
             # 确保清空缓存
             self.image_data = None
 
+    def get_mode(self) -> str:
+        """获取当前搜索模式"""
+        return self.embedding_service.mode
+    
+    def get_model_name(self) -> str:
+        """获取当前模型名称"""
+        return self.embedding_service.selected_model
+
     def download_model(self) -> None:
         """下载选中的模型"""
         self.embedding_service.download_selected_model()
