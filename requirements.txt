@@ -12,3 +12,4 @@ pillow
 openai
 streamlit_cropper
 fastapi
+redis
