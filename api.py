@@ -5,12 +5,19 @@ import yaml
 import os
 from services.image_search import ImageSearch
 from config.settings import Config
+from config.api_settings import api_config
+from middleware.protected_mode import ProtectedModeMiddleware
 
+config = api_config()
 app = FastAPI(title="VVQuest API")
 
 # 初始化核心组件
 config = Config()
 search_engine = ImageSearch()
+
+# 注册保护模式中间件
+if config.protected_mode:
+    app.add_middleware(ProtectedModeMiddleware, config=config)
 
 # 数据模型定义
 class SearchRequest(BaseModel):

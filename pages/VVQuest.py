@@ -132,7 +132,8 @@ def on_model_change():
         st.session_state.model_name = new_model
         if st.session_state.mode == 'local':
             try:
-                st.session_state.search_engine.set_mode('local', new_model)
+                st.session_state.search_engine.
+                ('local', new_model)
                 if st.session_state.search_query:
                     st.session_state.results = search()
             except Exception as e:
