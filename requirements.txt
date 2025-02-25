@@ -10,4 +10,5 @@ opencv-python
 pyyaml
 pillow
 openai
+streamlit_cropper
 fastapi
