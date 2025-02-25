@@ -1,6 +1,15 @@
 import yaml
+import os, shutil
 from pathlib import Path
 from pydantic import BaseModel
+
+CONFIG_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_FILE = os.path.join(CONFIG_DIR, 'api_config.yaml')
+CONFIG_EXAMPLE_FILE = os.path.join(CONFIG_DIR, 'api_config.example.yaml')
+
+# 如果配置文件不存在,从示例文件复制
+if not os.path.exists(CONFIG_FILE):
+    shutil.copyfile(CONFIG_EXAMPLE_FILE, CONFIG_FILE)
 
 class APIConfig(BaseModel):
     protected_mode: bool

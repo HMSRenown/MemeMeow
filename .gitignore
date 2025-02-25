@@ -6,5 +6,6 @@
 .env.*
 !.env.example
 config/config.yaml
+config/api_config.yaml
 cache/
 export/*
