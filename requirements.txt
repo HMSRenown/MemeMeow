@@ -13,3 +13,4 @@ openai
 streamlit_cropper
 fastapi
 redis
+starlette

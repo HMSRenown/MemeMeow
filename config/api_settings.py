@@ -1,7 +1,7 @@
 import yaml
 import os, shutil
 from pathlib import Path
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 CONFIG_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'api_config.yaml')
@@ -16,6 +16,18 @@ class APIConfig(BaseModel):
     allowed_endpoints: list[str]
     rate_limit: dict
     logging: dict
+
+class RateLimitConfig(BaseModel):
+    enabled: bool
+    requests: int
+    window: int
+    storage: str
+
+    @validator('requests')
+    def validate_requests(cls, v):
+        if v < 1:
+            raise ValueError("请求数必须大于0")
+        return v
 
 def load_config(config_path: str = "config/api_config.yaml") -> APIConfig:
     try:
