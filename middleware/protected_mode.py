@@ -18,7 +18,7 @@ class ProtectedModeMiddleware(BaseHTTPMiddleware):
             # 拦截其他请求
             raise HTTPException(
                 status_code=403,
-                detail="保护模式已启用，仅允许搜索API访问"
+                detail="Protected mode blocked request to {request.url.path}"
             )
             
         return await call_next(request)

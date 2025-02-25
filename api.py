@@ -120,27 +120,27 @@ async def switch_model(model_id: str):
         if search_engine.get_mode() != 'local':
             raise HTTPException(
                 status_code=400, 
-                detail="必须先切换到本地模式再切换模型"
+                detail="Must switch to local mode before changing model"
             )
 
         # 验证模型是否存在
         if model_id not in Config().models.embedding_models:
             raise HTTPException(
                 status_code=404,
-                detail=f"模型 {model_id} 未在配置中定义"
+                detail=f"Model {model_id} not defined in configuration"
             )
 
         # 验证模型文件
         if not search_engine.embedding_service.is_model_downloaded(model_id):
             raise HTTPException(
                 status_code=412,  # 前置条件失败
-                detail=f"模型 {model_id} 尚未下载"
+                detail=f"Model {model_id} not downloaded yet"
             )
 
         # 为什么mode和model设置放一起了啊......
         search_engine.set_mode('local', model_id)
 
-        return {"message": f"成功切换到模型 {model_id} "}
+        return {"message": f"Successfully switched to model {model_id} "}
     
     except HTTPException as he:
         raise he  # 传递已处理的错误
@@ -149,7 +149,7 @@ async def switch_model(model_id: str):
         traceback.print_exc()  # 打印完整堆栈
         raise HTTPException(
             status_code=500,
-            detail=f"模型加载失败: {str(e)}"
+            detail=f"Model loading failed: {str(e)}"
         )
 
 if __name__ == "__main__":
