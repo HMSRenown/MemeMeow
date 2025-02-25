@@ -6,25 +6,23 @@ import os
 from services.image_search import ImageSearch
 
 from config.settings import Config
-from config.api_settings import api_config
+from config.api_settings import APIConfig
 
 from middleware.protected_mode import ProtectedModeMiddleware
 from middleware.rate_limiter import RateLimitMiddleware
 
-
-config = api_config()
-app = FastAPI(title="VVQuest API")
-
 # 初始化核心组件
 config = Config()
 search_engine = ImageSearch()
+api_config = APIConfig()
+app = FastAPI(title="VVQuest API")
 
 # 注册保护模式中间件
-if config.protected_mode:
-    app.add_middleware(ProtectedModeMiddleware, config=config)
+if api_config.protected_mode:
+    app.add_middleware(ProtectedModeMiddleware, config=api_config)
 
-if config.rate_limit.enabled:
-    app.add_middleware(RateLimitMiddleware, config=config)
+if api_config.rate_limit.enabled:
+    app.add_middleware(RateLimitMiddleware, config=api_config)
 
 # 数据模型定义
 class SearchRequest(BaseModel):
