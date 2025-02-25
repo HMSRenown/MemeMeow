@@ -11,23 +11,21 @@ CONFIG_EXAMPLE_FILE = os.path.join(CONFIG_DIR, 'api_config.example.yaml')
 if not os.path.exists(CONFIG_FILE):
     shutil.copyfile(CONFIG_EXAMPLE_FILE, CONFIG_FILE)
 
-class APIConfig(BaseModel):
-    protected_mode: bool
-    allowed_endpoints: list[str]
-    rate_limit: dict
-    logging: dict
-
 class RateLimitConfig(BaseModel):
     enabled: bool
     requests: int
     window: int
     storage: str
-
     @validator('requests')
     def validate_requests(cls, v):
         if v < 1:
             raise ValueError("请求数必须大于0")
         return v
+
+class APIConfig(BaseModel):
+    protected_mode: bool
+    allowed_endpoints: list[str]
+    rate_limit: RateLimitConfig
 
 def load_config(config_path: str = "config/api_config.yaml") -> APIConfig:
     try:
