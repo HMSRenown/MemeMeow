@@ -3,6 +3,8 @@ from collections import defaultdict
 from fastapi import Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from threading import Lock
+import redis
+from redis.exceptions import RedisError
 
 class RateLimiter:
     def __init__(self):
@@ -23,12 +25,46 @@ class RateLimiter:
                 return False
             self.counts[key].append(now)
             return True
+        
+class RedisRateLimiter:
+    def __init__(self, host='localhost', port=6379):
+        self.redis = redis.Redis(host=host, port=port)
+        self.script = """
+        local key = KEYS[1]
+        local window = ARGV[1]
+        local max = ARGV[2]
+        
+        local current = redis.call('GET', key) or 0
+        if tonumber(current) >= tonumber(max) then
+            return 0
+        else
+            redis.call('INCR', key)
+            redis.call('EXPIRE', key, window)
+            return 1
+        end
+        """
+
+    def check(self, key: str, max_requests: int, window: int) -> bool:
+        try:
+            result = self.redis.eval(
+                self.script, 
+                1,  # keys数量
+                key, 
+                window, 
+                max_requests
+            )
+            return bool(result)
+        except RedisError:
+            return True  # 降级处理
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, config):
         super().__init__(app)
         self.config = config
-        self.ratelimiter = RateLimiter()
+        if self.config.rate_limit.storage == 'redis':
+            self.ratelimiter = RedisRateLimiter()
+        else:
+            self.ratelimiter = RateLimiter()
 
     async def dispatch(self, request: Request, call_next):
         if not self.config.rate_limit.enabled:

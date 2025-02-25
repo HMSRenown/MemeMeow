@@ -1,9 +1,9 @@
 api:
-  protected_mode: true
+  protected_mode: false
   allowed_endpoints:
     - "/search"
   rate_limit:
-    enabled: true
+    enabled: false
     requests: 100        # 每分钟最大请求数
     window: 60           # 时间窗口（秒）
     storage: "memory"    # 存储方式（memory/redis）
