@@ -1,0 +1,9 @@
+api:
+  protected_mode: true  # 启用保护模式
+  allowed_endpoints:
+    - "/search"         # 允许访问的端点
+  rate_limit:
+    enabled: true
+    requests: 100       # 每分钟最大请求数
+  logging:
+    level: "INFO"       # 日志级别
