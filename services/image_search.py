@@ -8,10 +8,12 @@ import re
 from typing import Optional, List, Dict
 
 from config.settings import Config
+from pages.utils import ENDWITH_IMAGE
 
 from services.embedding_service import EmbeddingService
 from services.resource_pack_manager import ResourcePackManager
 from services.utils import *
+from services.llm_enhance import LLMEnhance
 
 
 class ImageSearch:
@@ -19,10 +21,16 @@ class ImageSearch:
         self.embedding_service = EmbeddingService()
         self.embedding_service.set_mode(mode, model_name)
         self.resource_pack_manager = ResourcePackManager()
+        self.llm_enhance = LLMEnhance()
         self.image_data = None
         self._try_load_cache()
 
+    def __reload_class_cache(self):
+        self.embedding_service = EmbeddingService()
+        self.resource_pack_manager = ResourcePackManager()
+
     def _try_load_cache(self) -> None:
+        self.__reload_class_cache()
         """尝试加载缓存"""
         # 获取所有启用的资源包的缓存文件
         cache_files = self.resource_pack_manager.get_cache_files()
@@ -141,6 +149,7 @@ class ImageSearch:
         return self.image_data is not None
 
     def generate_cache(self, progress_bar) -> None:
+        self.__reload_class_cache()
         """生成缓存"""
         if self.embedding_service.mode == 'local':
             # 确保模型已加载
@@ -178,6 +187,7 @@ class ImageSearch:
             raise RuntimeError(error_message)
 
     def _generate_pack_cache(self, pack_id: str, pack_info: Dict, progress_bar) -> None:
+        self.__reload_class_cache()
         """为指定的资源包生成缓存"""
         img_dir = pack_info["path"]
         if not os.path.isabs(img_dir):
@@ -256,7 +266,6 @@ class ImageSearch:
         errors = []
         
         # 创建线程列表和线程锁
-        threads = []
         embedding_lock = threading.Lock()
         
         total_files = len(new_image_files)
@@ -268,7 +277,7 @@ class ImageSearch:
                 filename = os.path.splitext(os.path.basename(filepath))[0]
                 full_filename = None
                 
-                for ext in ['.png', '.jpg', '.jpeg', '.gif']:
+                for ext in ENDWITH_IMAGE:
                     if os.path.exists(os.path.join(os.path.dirname(filepath), filename + ext)):
                         full_filename = filename + ext
                         break
@@ -315,17 +324,12 @@ class ImageSearch:
                                   embedding_name, image_type, pack_id, embedding_lock, errors)
                         )
                         thread.start()
-                        threads.append(thread)
                         
                 progress_bar.progress((index + 1) / total_files, text=f"处理 {pack_info['name']} 图片 {index + 1}/{total_files}")
                 
-                # 每处理150个文件，等待所有线程完成并保存一次缓存
-                if index % 150 == 0 and index > 0:
-                    # 等待所有线程完成
-                    for t in threads:
-                        t.join()
-                    threads = []  # 清空线程列表
-                    
+
+                if (index % 151 == 0 and index > 0 and
+                        time.time() - self.embedding_service.get_last_request_time() < 30):
                     # 保存中间缓存
                     if embeddings:
                         with embedding_lock:
@@ -340,10 +344,6 @@ class ImageSearch:
             except Exception as e:
                 print(f"生成嵌入失败 [{filepath}]: {str(e)}")
                 errors.append(f"[{filepath}] {str(e)}")
-        
-        # 等待所有剩余线程完成
-        for t in threads:
-            t.join()
                 
         # 保存最终缓存
         if embeddings:
@@ -366,7 +366,15 @@ class ImageSearch:
         """余弦相似度计算"""
         return np.dot(a, b)
 
-    def search(self, query: str, top_k: int = 5, api_key: Optional[str] = None) -> List[str]:
+    def search(self,
+               query: str,
+               top_k: int = 5,
+               api_key: Optional[str] = None,
+               use_llm: bool = False) -> List[str]:
+        self.__reload_class_cache()
+        if use_llm:
+            query = self.llm_enhance.search(query)
+
         """语义搜索最匹配的图片"""
         if not self.has_cache():
             return []
@@ -378,7 +386,6 @@ class ImageSearch:
             return []
 
         similarities = []
-        exists_imgs_path = []
         for img in self.image_data:
             if 'filepath' not in img and Config().misc.adapt_for_old_version:
                 # 使用资源包的路径
@@ -394,15 +401,54 @@ class ImageSearch:
                 img['filepath'] = os.path.join(pack_path, img["filename"])
                 
             if os.path.exists(img['filepath']):
-                exists_imgs_path.append(img['filepath'])
-                similarity = self._cosine_similarity(query_embedding, img['embedding'])
-                similarities.append((similarity, img['filepath']))
+                # similarity = self._cosine_similarity(query_embedding, img['embedding'])
+                similarities.append(({
+                                         'path': img['filepath'],
+                                         'embedding_name': img['embedding_name'], },
+                                     self._cosine_similarity(query_embedding, img["embedding"])))
 
-        # 按相似度排序
-        similarities.sort(reverse=True)
-        
-        # 返回前top_k个结果
-        return [item[1] for item in similarities[:top_k]]
+        if not similarities:
+            return []
+
+        exists_imgs_path = []
+        # 按相似度降序排序并返回前top_k个结果
+        sorted_items = sorted(similarities, key=lambda x: x[1], reverse=True)
+        return_list = []
+        count = 0
+        for i in sorted_items:
+            if count >= top_k * 5:
+                break
+            if i[0]['path'] not in exists_imgs_path:
+                return_list.append(i[0])
+                exists_imgs_path.append(i[0]['path'])
+                count += 1
+
+        # 随机化输出 去除重复图片
+
+        skip_indexes = []
+        return_list_2 = []
+        for index, i in enumerate(return_list):
+            if len(return_list_2) >= top_k:
+                break
+            if index in skip_indexes:
+                continue
+            randomize_list = [i]
+            for jndex, j in enumerate(return_list[index + 1:]):
+                if i['embedding_name'] == j['embedding_name']:
+                    randomize_list.append(j)
+                    skip_indexes.append(index + jndex + 1)
+            if len(randomize_list) >= 2:
+                random.shuffle(randomize_list)
+                return_list_2 += [i['path'] for i in pop_similar_images(randomize_list)]
+            else:
+                return_list_2.append(i['path'])
+
+        return return_list_2
+        # # 按相似度排序
+        # similarities.sort(reverse=True)
+        #
+        # # 返回前top_k个结果
+        # return [item[1] for item in similarities[:top_k]]
         
     def reload_resource_packs(self) -> None:
         """重新加载资源包"""
@@ -446,7 +492,7 @@ def pop_similar_images(input_image_list, threshold=0.9):
     for index, img in enumerate(image_list):
 
         max_similar = 0
-        print(index)
+        logger.trace(index)
         for j in image_list[index+1:]:
             max_similar = max(max_similar, calculate_image_similarity(img['image'], j['image']))
         if max_similar < threshold:

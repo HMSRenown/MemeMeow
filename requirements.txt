@@ -11,6 +11,7 @@ pyyaml
 pillow
 openai
 streamlit_cropper
+loguru
 fastapi
 redis
 starlette

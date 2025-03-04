@@ -34,6 +34,8 @@ if 'base_url' not in st.session_state:
     st.session_state.base_url = Config().api.vlm_models.base_url
     if st.session_state.base_url is None:
         st.session_state.base_url = ''
+if 'upload_file_key_2' not in st.session_state:
+    st.session_state.upload_file_key_2 = int(time.time()*100)
 
 
 def on_api_key_change():
@@ -103,12 +105,11 @@ with st.sidebar:
         key="base_url_input",
         on_change=on_base_url_change
     )
-    uploaded_images = st.file_uploader(label='添加表情包', accept_multiple_files=True, type=['png', 'jpg', 'jpeg', 'gif'])
+    uploaded_images = st.file_uploader(label='添加表情包', accept_multiple_files=True, type=['png', 'jpg', 'jpeg', 'gif'], key=st.session_state.upload_file_key_2)
 
 
 
-CACHE_PATH = os.path.join(Config().base_dir, 'cache')
-verify_folder(CACHE_PATH)
+CACHE_PATH = os.path.join(Config().get_temp_path('upload_images_page'))
 
 if st.session_state.input_text:
     path = os.path.join(Config().base_dir, 'data', st.session_state.input_text)
@@ -141,25 +142,28 @@ if uploaded_images:
         except Exception as e:
             img_name = f'{datetime.datetime.now()}.gif'
         # 使用 PIL 打开图片并显示
-        img = Image.open(uploaded_image)
-        show_image_area.image(img, caption=uploaded_image.name, width=200)
-        cache_path = os.path.join(CACHE_PATH, img_name)
-        if img.mode == 'P': #TODO: 检查这行代码是否不需要
+        try:
+            img = Image.open(uploaded_image)
+            show_image_area.image(img, caption=uploaded_image.name, width=200)
+            cache_path = os.path.join(CACHE_PATH, img_name)
             img = img.convert('RGB')
-        img.save(os.path.join(cache_path))
-        # 生成图片描述
-        if st.session_state.auto_generate_labels:
-            res = label_image(cache_path, show_result_area)
-            if res:
-                img_name = res + os.path.splitext(img_name)[1]
-
-        # 保存上传的图片到指定文件夹
-        save_image_path = os.path.join(st.session_state.image_folder_name,img_name )
-        if os.path.exists(save_image_path):
-            show_result_area.error(f'图片 {save_image_path} 已存在')
-        else:
-            if img.mode == 'P':
-                img = img.convert('RGB')
-            img.save(save_image_path)
-            show_result_area.success(f'图片 {save_image_path} 已保存')
-    uploaded_images = [] # 这行代码没用，那个组件仍然会保存已上传的文件
+            img.save(os.path.join(cache_path))
+            # 生成图片描述
+            if st.session_state.auto_generate_labels:
+                res = label_image(cache_path, show_result_area)
+                if res:
+                    img_name = res + os.path.splitext(img_name)[1]
+            img_name = remove_invalid_filename_chars(img_name)
+            # 保存上传的图片到指定文件夹
+            save_image_path = os.path.join(st.session_state.image_folder_name,img_name )
+            if os.path.exists(save_image_path):
+                show_result_area.error(f'图片 {save_image_path} 已存在')
+            else:
+                if img.mode == 'P':
+                    img = img.convert('RGB')
+                img.save(save_image_path)
+                show_result_area.success(f'图片 {save_image_path} 已保存')
+        except Exception as e:
+            logger.exception(e)
+            show_result_area.error(f'图片 {uploaded_image.name} 保存失败: {e}')
+    st.session_state.upload_file_key_2 = int(time.time()*100)
