@@ -34,6 +34,7 @@ def load_config(config_path: str = "config/api_config.yaml") -> APIConfig:
             raise FileNotFoundError(f"配置文件 {config_path} 不存在")
             
         with open(config_file) as f:
+            print(f"正在加载配置文件: {config_path}")
             raw_config = yaml.safe_load(f)
             
         return APIConfig(**raw_config["api"])
