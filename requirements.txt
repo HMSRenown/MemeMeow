@@ -15,3 +15,6 @@ loguru
 fastapi
 redis
 starlette
+langchain
+duckduckgo_search
+langchain_openai
