@@ -21,11 +21,19 @@ class RateLimitConfig(BaseModel):
         if v < 1:
             raise ValueError("请求数必须大于0")
         return v
+    
+class APIModeConfig(BaseModel):
+    default_api_key: str
+    default_base_url: str
 
 class APIConfig(BaseModel):
     protected_mode: bool
     allowed_endpoints: list[str]
     rate_limit: RateLimitConfig
+    generate_cache: bool
+    mode: str
+    api_mode_config: APIModeConfig
+    model: str
 
 def load_config(config_path: str = "config/api_config.yaml") -> APIConfig:
     try:
