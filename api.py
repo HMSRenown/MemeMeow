@@ -69,7 +69,7 @@ async def get_config():
         "base_url": config.api.embedding_models.base_url
     }
 
-@app.put("/config")
+@app.put("/api-config")
 async def update_config(update: ConfigUpdate):
     """更新API配置"""
     try:
