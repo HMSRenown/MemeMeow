@@ -1,9 +1,15 @@
 api:
-  protected_mode: false
+  protected_mode: False
   allowed_endpoints:
     - "/search"
   rate_limit:
-    enabled: false
-    requests: 100        # 每分钟最大请求数
+    enabled: False
+    requests: 10        # 每分钟最大请求数
     window: 60           # 时间窗口（秒）
     storage: "memory"    # 存储方式（memory/redis）
+  generate_cache: False
+  mode: "local"    # 模式（api/local）
+  api_mode_config:
+    default_api_key: "your-key-here"
+    default_base_url: "https://api.example.com"
+  model: "bge-m3"
