@@ -41,7 +41,7 @@ def load_config(config_path: str = "config/api_config.yaml") -> APIConfig:
         if not config_file.exists():
             raise FileNotFoundError(f"配置文件 {config_path} 不存在")
             
-        with open(config_file) as f:
+        with open(config_file, encoding='utf-8') as f:
             print(f"正在加载配置文件: {config_path}")
             raw_config = yaml.safe_load(f)
             
