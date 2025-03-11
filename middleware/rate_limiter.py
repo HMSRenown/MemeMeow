@@ -1,6 +1,7 @@
 import time
 from collections import defaultdict
-from fastapi import Request, HTTPException
+from fastapi import Request
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from threading import Lock
 import redis
@@ -12,16 +13,16 @@ class RateLimiter:
         self.lock = Lock()
 
     def check(self, key: str, max_requests: int, window: int) -> bool:
-        """返回是否允许请求"""
         with self.lock:
             now = time.time()
-            # 清理过期记录
-            self.counts[key] = [
-                t for t in self.counts[key] 
-                if (now - t) <= window
-            ]
+            # 清理过期记录并删除空键
+            if key in self.counts:
+                self.counts[key] = [t for t in self.counts[key] if (now - t) <= window]
+                if not self.counts[key]:
+                    del self.counts[key]
             # 检查计数
-            if len(self.counts[key]) >= max_requests:
+            current = self.counts.get(key, [])
+            if len(current) >= max_requests:
                 return False
             self.counts[key].append(now)
             return True
@@ -31,31 +32,38 @@ class RedisRateLimiter:
         self.redis = redis.Redis(host=host, port=port)
         self.script = """
         local key = KEYS[1]
-        local window = ARGV[1]
-        local max = ARGV[2]
+        local now = tonumber(ARGV[1])
+        local window = tonumber(ARGV[2])
+        local max = tonumber(ARGV[3])
         
-        local current = redis.call('GET', key) or 0
-        if tonumber(current) >= tonumber(max) then
+        -- 删除窗口之前的记录
+        redis.call('ZREMRANGEBYSCORE', key, 0, now - window)
+        -- 获取当前计数
+        local count = redis.call('ZCARD', key)
+        if count >= max then
             return 0
-        else
-            redis.call('INCR', key)
-            redis.call('EXPIRE', key, window)
-            return 1
         end
+        -- 添加当前时间戳
+        redis.call('ZADD', key, now, now)
+        -- 设置过期时间
+        redis.call('EXPIRE', key, window)
+        return 1
         """
 
     def check(self, key: str, max_requests: int, window: int) -> bool:
         try:
+            now = int(time.time())
             result = self.redis.eval(
-                self.script, 
-                1,  # keys数量
-                key, 
-                window, 
+                self.script,
+                1,
+                key,
+                now,
+                window,
                 max_requests
             )
             return bool(result)
         except RedisError:
-            return True  # 降级处理
+            return True  # 根据需求调整降级策略
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, config):
@@ -79,9 +87,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             max_requests=self.config.rate_limit.requests,
             window=self.config.rate_limit.window
         ):
-            raise HTTPException(
+            return JSONResponse(
                 status_code=429,
-                detail=f"请求过于频繁，每分钟限流 {self.config.rate_limit.requests} 次",
+                detail=f"Requests are too frequent. Rate limited to {self.config.rate_limit.requests} requests per {self.config.rate_limit.window} seconds",
                 headers={"Retry-After": str(self.config.rate_limit.window)}
             )
             
