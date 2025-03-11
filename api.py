@@ -8,6 +8,7 @@ from services.image_search import ImageSearch
 from config.settings import Config
 from config.api_settings import load_config
 
+import uvicorn
 
 from middleware.protected_mode import ProtectedModeMiddleware
 from middleware.rate_limiter import RateLimitMiddleware
@@ -65,8 +66,8 @@ async def get_config():
     return {
         "mode": search_engine.get_mode(),
         "model": search_engine.get_model_name(),
-        "api_key": config.api.embedding_models.api_key,
-        "base_url": config.api.embedding_models.base_url
+        "api_key": search_engine.embedding_service.api_key,
+        "base_url": search_engine.embedding_service.base_url
     }
 
 @app.put("/api-config")
@@ -74,9 +75,9 @@ async def update_config(update: ConfigUpdate):
     """更新API配置"""
     try:
         if update.api_key:
-            config.api.embedding_models.api_key = update.api_key
+            search_engine.embedding_service.api_key = update.api_key
         if update.base_url:
-            config.api.embedding_models.base_url = update.base_url
+            search_engine.embedding_service.base_url = update.base_url
         config.save()
         return {"message": "Config updated successfully"}
     except Exception as e:
@@ -159,12 +160,15 @@ async def switch_model(model_id: str):
         )
 
 if __name__ == "__main__":
-    import uvicorn
     if api_config.mode == 'local':
         if search_engine.embedding_service.is_model_downloaded(api_config.model)==False:
             search_engine.download_model(api_config.model)
         search_engine.set_mode('local', api_config.model)
     elif api_config.mode == 'api':
-        config.api.embedding_models.api_key = api_config.api_mode_config.default_api_key
-        config.api.embedding_models.base_url = api_config.api_mode_config.default_base_url
+        search_engine.embedding_service.api_key = api_config.api_mode_config.default_api_key
+        search_engine.embedding_service.base_url = api_config.api_mode_config.default_base_url
+        search_engine.set_mode('api')
+    if api_config.generate_cache:
+        search_engine.generate_cache()
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
