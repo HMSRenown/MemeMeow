@@ -12,6 +12,9 @@ pillow
 openai
 streamlit_cropper
 loguru
+fastapi
+redis
+starlette
 langchain
-langchain_openai
 duckduckgo_search
+langchain_openai
