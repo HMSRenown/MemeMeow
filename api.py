@@ -161,10 +161,13 @@ async def switch_model(model_id: str):
 
 if __name__ == "__main__":
     if api_config.mode == 'local':
+        search_engine.embedding_service.mode = 'local'
         if search_engine.embedding_service.is_model_downloaded(api_config.model)==False:
-            search_engine.download_model(api_config.model)
+            search_engine.embedding_service.selected_model = api_config.model
+            search_engine.download_model()
         search_engine.set_mode('local', api_config.model)
     elif api_config.mode == 'api':
+        search_engine.embedding_service.mode = 'api'
         search_engine.embedding_service.api_key = api_config.api_mode_config.default_api_key
         search_engine.embedding_service.base_url = api_config.api_mode_config.default_base_url
         search_engine.set_mode('api')
