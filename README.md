@@ -15,7 +15,7 @@ _✨ 通过自然语言检索表情包 ✨_
 
 [![License](https://img.shields.io/github/license/MemeMeow-Studio/MemeMeow)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org)
-[![Online Demo](https://img.shields.io/website?url=https%3A%2F%2Fmememeow.studio&up_message=online&down_message=offline&label=demo)](https://mememeow.studio)
+[![Online Demo](https://img.shields.io/website?url=https%3A%2F%2Fzvv.quest&up_message=online&down_message=offline&label=demo)](https://zvv.quest)
 
 ---
 
