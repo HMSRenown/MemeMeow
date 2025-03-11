@@ -18,3 +18,4 @@ starlette
 langchain
 duckduckgo_search
 langchain_openai
+uvicorn
