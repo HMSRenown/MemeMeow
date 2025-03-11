@@ -1,6 +1,8 @@
 import hashlib
 import os
 import sys
+import threading
+
 import requests
 import pickle
 import random
@@ -132,3 +134,17 @@ def download_file(url, save_path, ignore_ssl=True):
     except Exception as e:
         print(f"发生未知错误: {e}")
         return False
+
+def download_files(urls_and_paths):
+    threads = []
+    # 为每个文件下载任务创建一个线程
+    for url, save_path in urls_and_paths:
+        thread = threading.Thread(target=download_file, args=(url, save_path))
+        threads.append(thread)
+        thread.start()
+
+    # 等待所有线程完成
+    for thread in threads:
+        thread.join()
+
+    return

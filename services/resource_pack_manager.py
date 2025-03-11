@@ -74,8 +74,10 @@ class ResourcePackManager:
                                 "cover": cover_path,
                                 "manifest": manifest,
                                 "pack_dir": pack_dir,
-                                "url": manifest.get("url", "")
+                                "url": manifest.get("url", ""),
                             }
+                            if manifest.get('regex') is not None:
+                                self.available_packs[pack_id]['regex'] = manifest.get('regex')
                             if resource_config.enabled:
                                 self.enabled_packs[pack_id] = self.available_packs[pack_id]
                         except Exception as e:
