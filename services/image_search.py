@@ -89,6 +89,14 @@ class ImageSearch:
             # 确保清空缓存
             self.image_data = None
 
+    def get_mode(self) -> str:
+        """获取当前搜索模式"""
+        return self.embedding_service.mode
+    
+    def get_model_name(self) -> str:
+        """获取当前模型名称"""
+        return self.embedding_service.selected_model
+
     def download_model(self) -> None:
         """下载选中的模型"""
         self.embedding_service.download_selected_model()
@@ -250,10 +258,10 @@ class ImageSearch:
                                         "pack_id": pack_id_
                                     })
                             except Exception as e:
-                                error_msg = f"生成嵌入失败 [{filepath_}]: {str(e)}"
+                                error_msg = f"生成嵌入失败 {str(e)} in [{filepath_}]"
                                 print(error_msg)
                                 with lock:
-                                    errors_list.append(f"[{filepath_}] {str(e)}")
+                                    errors_list.append(f"{str(e)} [{filepath_}]" )
                                 
                         while self.embedding_service.is_rpm_overload():
                             print(f"RPM过载，等待1秒...")
@@ -360,6 +368,7 @@ class ImageSearch:
         sorted_items = sorted(similarities, key=lambda x: x[1], reverse=True)
         return_list = []
         count = 0
+        download_list = []
         for i in sorted_items:
             if count >= top_k * 5:
                 break
@@ -369,15 +378,18 @@ class ImageSearch:
                     url = self.resource_pack_manager.enabled_packs[i[0]['obj']['pack_id']]['url']
                     if url:
                         rel_path = re.sub(r'^.*?resource_packs\\[^\\]+\\', '', i[0]['path'])
-                        if not download_file(os.path.join(url, rel_path), i[0]['path']):
-                            continue
+                        download_list.append([os.path.join(url, rel_path), i[0]['path']])
+                        # if not download_file(os.path.join(url, rel_path), i[0]['path']):
+                        #     continue
                     else:
                         logger.error(f"图片不存在: {i[0]['path']}")
                         continue
                 return_list.append(i[0])
                 exists_imgs_path.append(i[0]['path'])
                 count += 1
-            # 联网下载不存在的图片
+        # 联网下载不存在的图片
+        download_files(download_list)
+
 
 
 
@@ -386,6 +398,9 @@ class ImageSearch:
         skip_indexes = []
         return_list_2 = []
         for index, i in enumerate(return_list):
+            # 验证图片是否存在
+            if not os.path.exists(i['path']):
+                continue
             if len(return_list_2) >= top_k:
                 break
             if index in skip_indexes:
