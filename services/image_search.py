@@ -8,7 +8,7 @@ import re
 from typing import Optional, List, Dict
 
 from config.settings import Config
-from pages.utils import ENDWITH_IMAGE
+from stpages.utils import ENDWITH_IMAGE
 
 from services.embedding_service import EmbeddingService
 from services.resource_pack_manager import ResourcePackManager
