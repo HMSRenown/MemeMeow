@@ -9,6 +9,7 @@ misc:
   adapt_for_old_version: true
 models:
   default_model: bge-large-zh-v1.5
+  selected_embedding_model: bge-large-zh-v1.5
   embedding_models:
     bge-large-zh-v1.5:
       name: BAAI/bge-large-zh-v1.5

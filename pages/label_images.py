@@ -143,7 +143,8 @@ with st.sidebar:
     
     # 资源包信息输入
     pack_name = st.text_input("资源包名称", value="我的资源包", help="资源包的名称,不能为空")
-    pack_version = st.text_input("版本号", value="1.0.0", help="版本号,格式如: 1.0.0")
+    st.text("当前版本号：1.0.1")
+    pack_version = "1.0.1"# text_input("版本号", value="1.0.0", help="版本号,格式如: 1.0.0")
     pack_author = st.text_input("作者", value="", help="资源包作者,不能为空")
     pack_description = st.text_input("描述", value="", help="资源包的简要描述")
     pack_tags = st.text_input("标签", value="", help="用英文逗号分隔多个标签")

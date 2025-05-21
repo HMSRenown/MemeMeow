@@ -56,15 +56,8 @@ if 'base_url' not in st.session_state:
     st.session_state.base_url = Config().api.embedding_models.base_url
     if st.session_state.base_url is None:
         st.session_state.base_url = ''
-if 'mode' not in st.session_state:
-    st.session_state.mode = 'api'
-if 'model_name' not in st.session_state:
-    st.session_state.model_name = Config().models.default_model
 if 'search_engine' not in st.session_state:
-    st.session_state.search_engine = ImageSearch(
-        mode=st.session_state.mode,
-        model_name=st.session_state.model_name
-    )
+    st.session_state.search_engine = ImageSearch()
 if 'has_cache' not in st.session_state:
     st.session_state.has_cache = st.session_state.search_engine.has_cache()
 if 'show_resource_packs' not in st.session_state:
@@ -87,8 +80,8 @@ def search():
             results = st.session_state.search_engine.search(
                 st.session_state.search_query, 
                 st.session_state.n_results,
-                st.session_state.embedding_api_key if st.session_state.mode == 'api' else None,
-                st.session_state.enable_llm_enhance
+                api_key = st.session_state.embedding_api_key,
+                use_llm = st.session_state.enable_llm_enhance
             )
             st.session_state.results = results if results else []
             return st.session_state.results
@@ -122,47 +115,6 @@ def on_base_url_change():
         st.session_state.base_url = new_base_url
         # 保存到配置文件
         save_config_yaml(st.session_state.embedding_api_key, new_base_url)
-
-def on_mode_change():
-    new_mode = st.session_state.mode_widget
-    if new_mode != st.session_state.mode:
-        st.session_state.mode = new_mode
-        try:
-            if new_mode == 'local':
-                st.session_state.search_engine.set_mode(new_mode, st.session_state.model_name)
-            else:
-                st.session_state.search_engine.set_mode(new_mode)
-            # 重新加载资源包，确保缓存状态更新
-            st.session_state.search_engine.reload_resource_packs()
-            # 更新缓存状态
-            st.session_state.has_cache = st.session_state.search_engine.has_cache()
-            if st.session_state.search_query:
-                st.session_state.results = search()
-        except Exception as e:
-            st.error(f"模式切换失败: {str(e)}")
-
-def on_model_change():
-    # 从选项中提取模型ID
-    new_model = st.session_state.model_widget.split()[0]
-    if new_model != st.session_state.model_name:
-        st.session_state.model_name = new_model
-        if st.session_state.mode == 'local':
-            try:
-                st.session_state.search_engine.set_mode('local', new_model)
-                # 重新加载资源包，确保缓存状态更新
-                st.session_state.search_engine.reload_resource_packs()
-                # 更新缓存状态
-                st.session_state.has_cache = st.session_state.search_engine.has_cache()
-                if st.session_state.search_query:
-                    st.session_state.results = search()
-            except Exception as e:
-                st.error(f"模型切换失败: {str(e)}")
-
-def on_download_model():
-    """下载模型回调"""
-    with st.spinner('正在下载模型...'):
-        st.session_state.search_engine.download_model()
-    st.success('模型下载完成！')
 
 def on_generate_cache():
     """生成缓存回调"""
@@ -207,77 +159,21 @@ def on_reload_resource_packs():
 # 侧边栏搜索区域
 with st.sidebar:
     st.title("🐱 MemeMeow")
-    
-    # 模式选择
-    st.selectbox(
-        "选择搜索模式",
-        options=['api', 'local'],
-        index=0 if st.session_state.mode == 'api' else 1,
-        key='mode_widget',
-        on_change=on_mode_change,
-        help="API模式需要网络连接和API密钥，本地模式需要下载模型"
-    )
-    
-    # 本地模型选择和下载
-    if st.session_state.mode == 'local':
-        # 生成模型选项和显示名称的映射
-        model_options = []
-        model_display_names = {}
-        for model_id, info in Config().models.embedding_models.items():
-            downloaded = st.session_state.search_engine.embedding_service.is_model_downloaded(model_id)
-            status = "✅" if downloaded else "⬇️"
-            display_name = f"{model_id} [{info.performance}] {status}"
-            model_options.append(display_name)
-            model_display_names[model_id] = display_name
-        
-        # 找到当前模型的显示名称
-        current_display_name = model_display_names[st.session_state.model_name]
-        
-        selected_model = st.selectbox(
-            "选择嵌入模型",
-            options=model_options,
-            index=model_options.index(current_display_name),
-            key='model_widget',
-            on_change=on_model_change,
-            help="选择合适的模型以平衡性能和资源消耗"
-        )
-        
-        # 模型下载和重新下载按钮
-        if not st.session_state.search_engine.embedding_service.is_model_downloaded(st.session_state.model_name):
-            st.info("⚠️ 当前选中的模型尚未下载")
-            st.button(
-                "下载选中的模型",
-                on_click=on_download_model,
-                help="下载选中的模型到本地",
-                key="download_model_btn",
-                use_container_width=True
-            )
-        elif not st.session_state.search_engine.embedding_service.current_model:
-            st.error("⚠️ 模型加载失败！请重新下载")
-            st.button(
-                "重新下载模型",
-                on_click=on_download_model,
-                help="模型加载失败时使用此功能重新下载",
-                key="reload_model_btn",
-                use_container_width=True
-            )
-            st.warning("提示：如果重新下载后仍然无法加载，请尝试重启应用")
-    
     # API密钥输入(仅API模式)
-    if st.session_state.mode == 'api':
-        api_key = st.text_input(
-            "请输入API Key", 
-            value=st.session_state.embedding_api_key,
-            type="password",
-            key="api_key_input",
-            on_change=on_api_key_change
-        )
-        base_url = st.text_input(
-            "请输入Base URL", 
-            value=st.session_state.base_url,
-            key="base_url_input",
-            on_change=on_base_url_change
-        )
+
+    api_key = st.text_input(
+        "请输入API Key",
+        value=st.session_state.embedding_api_key,
+        type="password",
+        key="api_key_input",
+        on_change=on_api_key_change
+    )
+    base_url = st.text_input(
+        "请输入Base URL",
+        value=st.session_state.base_url,
+        key="base_url_input",
+        on_change=on_base_url_change
+    )
     
     # 资源包管理按钮
     st.button(
@@ -348,7 +244,7 @@ with st.sidebar:
                         # 显示缓存状态
                         cache_generated = st.session_state.search_engine.resource_pack_manager.is_pack_cache_generated(
                             pack_id, 
-                            st.session_state.search_engine.embedding_service.selected_model
+                            st.session_state.search_engine.embedding_service.selected_embedding_model
                         )
                         if cache_generated:
                             st.success("缓存已生成", icon="✅")
@@ -382,15 +278,9 @@ with st.sidebar:
 
     # 生成缓存按钮
     has_cache = st.session_state.search_engine.has_cache()
-    can_generate_cache = (
-        st.session_state.mode == 'api' or 
-        (st.session_state.mode == 'local' and 
-         st.session_state.search_engine.embedding_service.is_model_downloaded(st.session_state.model_name) and
-         st.session_state.search_engine.embedding_service.current_model is not None)  # 确保模型已加载
-    )
-    
+    can_generate_cache = True #TODO: 以前兼容local模型用的，废了
     if not has_cache:
-        st.warning("⚠️ 尚未生成表情包缓存")
+        st.warning(f"⚠️ 尚未生成表情包缓存, 当前模型：{st.session_state.search_engine.get_model_name()}")
     
     # 显示缓存生成按钮
     if can_generate_cache:
@@ -404,23 +294,10 @@ with st.sidebar:
             use_container_width=True
         ):
             on_generate_cache()
-    elif st.session_state.mode == 'local':
-        if not st.session_state.search_engine.embedding_service.is_model_downloaded(st.session_state.model_name):
-            st.error("请先在上方下载选中的模型")
-        elif st.session_state.search_engine.embedding_service.current_model is None:
-            st.error("请先在上方重新下载模型并确保加载成功")
     
     # 检查是否可以进行搜索
-    can_search = has_cache and (
-        st.session_state.mode == 'api' or 
-        (st.session_state.mode == 'local' and 
-         st.session_state.search_engine.embedding_service.current_model is not None)
-    )
-    
-    if not can_search and st.session_state.mode == 'local':
-        if not st.session_state.search_engine.embedding_service.current_model:
-            st.error("⚠️ 模型未正确加载，请先解决模型问题")
-    
+    can_search = has_cache
+
     user_input = st.text_input(
         "请输入搜索关键词", 
         value=st.session_state.search_query,

@@ -107,6 +107,7 @@ class VlmModelConfig(BaseConfig):
 
 class ModelsConfig(BaseConfig):
     embedding_models: Dict[str, EmbeddingModelConfig]
+    selected_embedding_model: str
     vlm_models: Dict[str, VlmModelConfig]
     default_model: str
 
@@ -211,7 +212,7 @@ class Config(BaseConfig):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if sys.gettrace() is not None:
-            print('Exiting the context')
+            logger.trace('Exiting the context')
         # r = self.get_changed_kv('config')
         # saving_dict = load_yaml_file(CONFIG_FILE)
         # for k_v in r:
