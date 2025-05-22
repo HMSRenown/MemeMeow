@@ -12,6 +12,7 @@ import uvicorn
 
 from middleware.protected_mode import ProtectedModeMiddleware
 from middleware.rate_limiter import RateLimitMiddleware
+import re
 
 # 初始化核心组件
 config = Config()
@@ -32,7 +33,7 @@ class SearchRequest(BaseModel):
     n_results: int = 5
 
 class SearchRequestEnhanced(SearchRequest):
-    resource_pack_uuids: List[str]
+    resource_pack_uuids: List[str] = []  # 添加默认空列表
     ai_search: bool = False
 
 class ConfigUpdate(BaseModel):
@@ -42,21 +43,37 @@ class ConfigUpdate(BaseModel):
 class ModelDownloadRequest(BaseModel):
     model_id: str
 
-# API 端点
-@app.post("/search")
-async def search_images(request: SearchRequest):
-    """执行图片搜索"""
-    try:
-        results = search_engine.search(
-            request.query,
-            request.n_results,
-            api_key = config.api.embedding_models.api_key
-        )
-        return {"results": results}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+def search_result_postprocess(results:List[str]):
+    ret = []
+    for v in results:
+        if api_config.urls.return_type == "abs_path":
+            pass
+        elif api_config.urls.return_type == "rel_path":
+            v = os.path.relpath(v, Config().base_dir)
+        elif api_config.urls.return_type == "sha256":
+            pass
+        reg_pattern = api_config.urls.path_replace_regex
+        if reg_pattern:
+            v = re.sub(reg_pattern, "", v)
 
-@app.post("/searchv2")
+        ret.append(os.path.join(api_config.urls.url_prefix, v, api_config.urls.url_postfix))
+    return ret
+
+# API 端点
+# @app.post("/search")
+# async def search_images(request: SearchRequest):
+#     """执行图片搜索"""
+#     try:
+#         results = search_engine.search(
+#             request.query,
+#             request.n_results,
+#             api_key = config.api.embedding_models.api_key
+#         )
+#         return {"results": search_result_postprocess(results)}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/search")
 async def search_images(request: SearchRequestEnhanced):
     """执行图片搜索"""
     try:
@@ -67,7 +84,8 @@ async def search_images(request: SearchRequestEnhanced):
             api_key = config.api.embedding_models.api_key,
             use_llm = request.ai_search,
         )
-        return {"results": results}
+
+        return {"results": search_result_postprocess(results)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -133,5 +151,5 @@ if __name__ == "__main__":
     # search_engine.set_mode('api')
     if api_config.generate_cache:
         search_engine.generate_cache()
-
+    print("Starting API server...")
     uvicorn.run(app, host="0.0.0.0", port=8000)

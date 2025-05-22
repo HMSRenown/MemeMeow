@@ -149,9 +149,6 @@ class ImageSearch:
         # 联网下载不存在的图片
         download_files(download_list)
 
-
-
-
         # 随机化输出 去除重复图片
 
         skip_indexes = []
