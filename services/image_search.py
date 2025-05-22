@@ -236,3 +236,5 @@ def pop_similar_images(input_image_list, threshold=0.9):
             return_images.append(img)
 
     return return_images
+
+IMAGE_SEARCH_SERVICE = ImageSearch()

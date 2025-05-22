@@ -3,9 +3,8 @@ import time
 import streamlit as st
 import random
 import yaml
-from services.image_search import ImageSearch
+from services.image_search import IMAGE_SEARCH_SERVICE
 from config.settings import Config
-from services.resource_pack import ResourcePackService
 
 # 页面配置
 st.set_page_config(
@@ -57,17 +56,13 @@ if 'base_url' not in st.session_state:
     if st.session_state.base_url is None:
         st.session_state.base_url = ''
 if 'search_engine' not in st.session_state:
-    st.session_state.search_engine = ImageSearch()
+    st.session_state.search_engine = IMAGE_SEARCH_SERVICE
 if 'has_cache' not in st.session_state:
     st.session_state.has_cache = st.session_state.search_engine.has_cache()
 if 'show_resource_packs' not in st.session_state:
     st.session_state.show_resource_packs = False
-if 'upload_file_key' not in st.session_state:
-    st.session_state.upload_file_key = int(time.time()*100)
 if 'enable_llm_enhance' not in st.session_state:
     st.session_state.enable_llm_enhance = False
-if "pack_url" not in st.session_state:
-    st.session_state.pack_url = ""
 
 # 搜索函数
 def search():
@@ -130,32 +125,6 @@ def on_toggle_resource_packs():
     """切换资源包面板显示状态"""
     st.session_state.show_resource_packs = not st.session_state.show_resource_packs
 
-def on_enable_resource_pack(pack_id):
-    """启用资源包回调"""
-    if st.session_state.search_engine.enable_resource_pack(pack_id):
-        st.success(f"已启用资源包")
-        # 更新缓存状态
-        st.session_state.has_cache = st.session_state.search_engine.has_cache()
-    else:
-        st.error(f"启用资源包失败")
-
-def on_disable_resource_pack(pack_id):
-    """禁用资源包回调"""
-    if st.session_state.search_engine.disable_resource_pack(pack_id):
-        st.success(f"已禁用资源包")
-        # 更新缓存状态
-        st.session_state.has_cache = st.session_state.search_engine.has_cache()
-    else:
-        st.error(f"禁用资源包失败")
-
-def on_reload_resource_packs():
-    """重新加载资源包回调"""
-    st.session_state.search_engine.reload_resource_packs()
-    st.success("已重新加载资源包")
-    # 更新缓存状态
-    st.session_state.has_cache = st.session_state.search_engine.has_cache()
-
-
 # 侧边栏搜索区域
 with st.sidebar:
     st.title("🐱 MemeMeow")
@@ -174,126 +143,24 @@ with st.sidebar:
         key="base_url_input",
         on_change=on_base_url_change
     )
-    
-    # 资源包管理按钮
-    st.button(
-        "资源包管理" if not st.session_state.show_resource_packs else "隐藏资源包管理",
-        on_click=on_toggle_resource_packs,
-        help="管理表情包资源包",
-        key="toggle_resource_packs_btn",
-        use_container_width=True
-    )
-    
-    # 资源包管理面板
-    if st.session_state.show_resource_packs:
-        st.subheader("资源包管理")
-
-        # 加载资源包
-        files = st.file_uploader("导入本地资源包",
-                         type=["zip"],
-                                 accept_multiple_files=True,
-                                 key=st.session_state.upload_file_key)
-        if files:
-            for file in files:
-                # 解压资源包到resource_packs目录
-                ResourcePackService().import_resource_pack(file)
-                st.success(f"导入资源包 {file.name} 成功")
-            st.session_state.upload_file_key = int(time.time()*100)
-        if st.button("导入在线资源包"):
-            st.text_input("请输入资源包URL", key="pack_url")
-        if st.session_state.pack_url:
-            if ResourcePackService().import_resource_pack_from_url(st.session_state.pack_url):
-                st.success(f"导入资源包 {st.session_state.pack_url} 成功")
-            else:
-                st.error(f"导入资源包 {st.session_state.pack_url} 失败")
-            st.session_state.pack_url = ""
-        # 重新加载资源包按钮
-        st.button(
-            "重新扫描资源包",
-            on_click=on_reload_resource_packs,
-            help="重新扫描resource_packs目录，加载新的资源包",
-            key="reload_resource_packs_btn",
-            use_container_width=True
-        )
-        
-        # 获取所有资源包
-        resource_packs = st.session_state.search_engine.get_resource_packs()
-        enabled_packs = st.session_state.search_engine.get_enabled_resource_packs()
-        
-        if not resource_packs:
-            st.info("没有找到资源包，请将资源包解压到resource_packs目录")
-        else:
-            st.write(f"找到 {len(resource_packs)} 个资源包，已启用 {len(enabled_packs)} 个")
-            
-            # 显示资源包列表
-            for pack_id, pack_info in resource_packs.items():
-                with st.container():
-                    col1, col2 = st.columns([3, 1])
-                    
-                    with col1:
-                        # 获取封面图片
-                        cover_path = st.session_state.search_engine.get_resource_pack_cover(pack_id)
-                        if cover_path:
-                            st.image(cover_path, width=64)
-                            
-                        st.write(f"**{pack_info['name']}** v{pack_info['version']}")
-                        st.caption(f"作者: {pack_info['author']}")
-                        if pack_info.get('description'):
-                            st.caption(pack_info['description'])
-                        
-                        # 显示缓存状态
-                        cache_generated = st.session_state.search_engine.resource_pack_manager.is_pack_cache_generated(
-                            pack_id, 
-                            st.session_state.search_engine.embedding_service.selected_embedding_model
-                        )
-                        if cache_generated:
-                            st.success("缓存已生成", icon="✅")
-                        else:
-                            st.warning("缓存未生成", icon="⚠️")
-                    
-                    with col2:
-                        if pack_info['enabled']:
-                            if not pack_info.get('is_default', False):
-                                st.button(
-                                    "禁用",
-                                    key=f"disable_{pack_id}",
-                                    on_click=on_disable_resource_pack,
-                                    args=(pack_id,),
-                                    use_container_width=True
-                                )
-                            else:
-                                st.write("默认资源包")
-                        else:
-                            st.button(
-                                "启用",
-                                key=f"enable_{pack_id}",
-                                on_click=on_enable_resource_pack,
-                                args=(pack_id,),
-                                use_container_width=True
-                            )
-                    
-                    st.divider()
-
-
 
     # 生成缓存按钮
     has_cache = st.session_state.search_engine.has_cache()
-    can_generate_cache = True #TODO: 以前兼容local模型用的，废了
     if not has_cache:
         st.warning(f"⚠️ 尚未生成表情包缓存, 当前模型：{st.session_state.search_engine.get_model_name()}")
     
     # 显示缓存生成按钮
-    if can_generate_cache:
-        button_text = "重新生成缓存" if has_cache else "生成表情包缓存"
-        help_text = "更新表情包缓存" if has_cache else "首次使用需要生成表情包缓存"
-        
-        if st.button(
-            button_text,
-            help=help_text,
-            key="generate_cache_btn",
-            use_container_width=True
-        ):
-            on_generate_cache()
+
+    button_text = "重新生成缓存" if has_cache else "生成表情包缓存"
+    help_text = "更新表情包缓存" if has_cache else "首次使用需要生成表情包缓存"
+
+    if st.button(
+        button_text,
+        help=help_text,
+        key="generate_cache_btn",
+        use_container_width=True
+    ):
+        on_generate_cache()
     
     # 检查是否可以进行搜索
     can_search = has_cache

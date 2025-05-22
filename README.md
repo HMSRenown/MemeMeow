@@ -146,9 +146,24 @@ python -m streamlit run app.py
 
 ### 导入资源包 
 
-#### 在线资源包 (推荐)
+#### 社区资源包 (NEW!)
 
-在主界面，点击管理资源包，点击`导入在线资源包`，输入资源包链接，按下回车。
+##### 社区资源包工作原理
+社区资源包分为 资源包仓库更新信息community_manifest.json，表情包仓库metadata.json，和表情包库manifest.json。
+
+点击资源包管理页面，添加一个community_manifest的url，然后点击更新按钮。每次更新，MemeMeow会对比url指向的manifest和本地manifest中，每个**表情包库**的timestamp；
+
+如果存在更新，则根据清单文件的信息，针对有更新的表情包库，重新下载表情包库的清单文件。
+
+下载完成的社区资源包跟在线资源包的管理方式一致。
+
+示例社区清单文件链接：
+
+https://raw.githubusercontent.com/MemeMeow-Studio/Memes-Community/refs/heads/main/community_manifest.json
+
+#### 在线资源包
+
+点击资源包管理页面，点击`导入在线资源包`，输入资源包链接，按下回车。
 
 导入在线资源包只会下载一个manifest，存储所有图片的url路径和文件名。文件名用于匹配查询；匹配到图片后，会自动根据url联网下载图片，并缓存到本地，避免下载整个资源包。
 
@@ -162,7 +177,7 @@ https://github.com/MemeMeow-Studio/VVfromVideo
 
 #### 离线资源包
 
-在主界面，点击管理资源包，点击导入资源包，选择资源包，点击导入。
+点击资源包管理，点击导入资源包，选择资源包，点击导入。
 > [!CAUTION]
 > 导入资源包后，需要重新生成缓存。
 
@@ -220,3 +235,7 @@ Mememeow 相关应用:
 [![Star History Chart](https://api.star-history.com/svg?repos=MemeMeow-Studio/MemeMeow&type=Date)](https://star-history.com/#MemeMeow-Studio/MemeMeow&Date)
 
 ---
+
+## 已知问题
+
+由于streamlit的管理方式，每次源代码更新后刷新网页，会重新生成ImageData，造成内存泄漏。不修改源代码不会触发此问题。

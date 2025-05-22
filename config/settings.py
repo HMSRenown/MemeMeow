@@ -9,7 +9,6 @@ import typing as t
 
 from config.utils import *
 
-
 """
 修改配置：用with打开Config，修改后自动保存。可以修改多个配置。
 with Config() as config:
@@ -135,6 +134,8 @@ class ResourcePackConfig(BaseConfig):
     path: Optional[str] = None
     type: Optional[str] = None
     cache_file: Optional[str] = None
+class CommunityConfig(BaseConfig):
+    manifest_urls: Dict[str, bool]
 
 def update_nested_dict(dictionary, keys, value):
     """
@@ -185,6 +186,7 @@ class Config(BaseConfig):
     paths: PathsConfig
     misc: MiscConfig
     resource_packs: Dict[str, ResourcePackConfig] = {}
+    community: CommunityConfig
 
     # CONFIG_SOURCES = [
     #     FileSource(

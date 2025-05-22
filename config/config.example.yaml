@@ -44,3 +44,6 @@ resource_packs:
     path: null
     type: vv
     cache_file: null
+community:
+  manifest_urls: {}
+

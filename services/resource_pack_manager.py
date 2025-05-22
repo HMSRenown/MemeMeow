@@ -216,3 +216,5 @@ class ResourcePackManager:
         fp = os.path.join(Config().pack_embedding_cache_folder_path, f"{pack_id}.pkl")
         verify_folder(fp)
         return fp
+
+RESOURCE_PACK_MANAGER = ResourcePackManager()
