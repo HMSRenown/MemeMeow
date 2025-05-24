@@ -69,7 +69,8 @@ class ImageSearch:
                top_k: int = 5,
                resource_pack_uuids: Optional[List[str]]|None = None,
                api_key: Optional[str] = None,
-               use_llm: bool = False) -> List[str]:
+               use_llm: bool = False,
+               return_type = 'default') -> List[str]:
         self.embedding_service.refresh_config()
         if use_llm:
             if self.llm_enhance is None:
@@ -168,9 +169,19 @@ class ImageSearch:
                     skip_indexes.append(index + jndex + 1)
             if len(randomize_list) >= 2:
                 random.shuffle(randomize_list)
-                return_list_2 += [i['path'] for i in pop_similar_images(randomize_list)]
+                if 'hash' in return_type:
+                    pack_id = i['obj']['pack_id']
+                    hash_id = self.resource_pack_manager.available_packs.get(pack_id).get('manifest').get('contents').get('images').get('files').get(os.path.basename(i['path'])).get('hash')
+                    return_list_2 += [[i['path'], hash_id] for i in pop_similar_images(randomize_list)]
+                else:
+                    return_list_2 += [[i['path'], hash_id] for i in pop_similar_images(randomize_list)]
             else:
-                return_list_2.append(i['path'])
+                if 'hash' in return_type:
+                    pack_id = i['obj']['pack_id']
+                    hash_id = self.resource_pack_manager.available_packs.get(pack_id).get('manifest').get('contents').get('images').get('files').get(os.path.basename(i['path'])).get('hash')
+                    return_list_2.append([i['path'], hash_id])
+                else:
+                    return_list_2.append(i['path'])
 
 
 

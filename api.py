@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 import yaml
 import os
-from services.image_search import ImageSearch
+from services.image_search import IMAGE_SEARCH_SERVICE
 
 from config.settings import Config
 from config.api_settings import load_config
@@ -16,7 +16,7 @@ import re
 
 # 初始化核心组件
 config = Config()
-search_engine = ImageSearch()
+search_engine = IMAGE_SEARCH_SERVICE
 api_config = load_config() 
 app = FastAPI(title="VVQuest API")
 
@@ -51,12 +51,18 @@ def search_result_postprocess(results:List[str]):
         elif api_config.urls.return_type == "rel_path":
             v = os.path.relpath(v, Config().base_dir)
         elif api_config.urls.return_type == "sha256":
-            pass
+            v = v[1] + os.path.splitext(os.path.basename(v[0]))[1]  # 假设v是一个元组，v[1]是sha256，v[0]是文件名
         reg_pattern = api_config.urls.path_replace_regex
         if reg_pattern:
             v = re.sub(reg_pattern, "", v)
 
-        ret.append(os.path.join(api_config.urls.url_prefix, v, api_config.urls.url_postfix))
+        if api_config.urls.url_prefix:
+            v = os.path.join(api_config.urls.url_prefix, v)
+        if api_config.urls.url_postfix:
+            if not v.endswith(api_config.urls.url_postfix):
+                v = os.path.join(v, api_config.urls.url_postfix)
+
+        ret.append(v)
     return ret
 
 # API 端点
@@ -83,6 +89,7 @@ async def search_images(request: SearchRequestEnhanced):
             request.resource_pack_uuids,
             api_key = config.api.embedding_models.api_key,
             use_llm = request.ai_search,
+            return_type = "hash" if api_config.urls.return_type == "sha256" else "default"
         )
 
         return {"results": search_result_postprocess(results)}
