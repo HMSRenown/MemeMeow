@@ -59,10 +59,10 @@ def search_result_postprocess(results:List[str]):
             v = re.sub(reg_pattern, "", v)
 
         if api_config.urls.url_prefix:
-            v = os.path.join(api_config.urls.url_prefix, v)
+            v = f'{api_config.urls.url_prefix}/{v}'
         if api_config.urls.url_postfix:
             if not v.endswith(api_config.urls.url_postfix):
-                v = os.path.join(v, api_config.urls.url_postfix)
+                v = f'{v}/{api_config.urls.url_prefix}'
 
         ret.append(v)
     return ret
