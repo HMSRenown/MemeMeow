@@ -87,7 +87,7 @@ class CommunityService:
     def download_and_compose_all_manifests(self):
         composed_manifest = {}
         manifest_urls = Config().community.manifest_urls
-        
+        latest_timestamp = 0
         for url in manifest_urls:
             try:
                 # 下载manifest文件
@@ -98,6 +98,21 @@ class CommunityService:
                 
                 # 解析manifest内容
                 manifest_data = response.json()
+                
+                if 'community_info' in manifest_data:
+                    community_info = manifest_data['community_info']
+                    # 更新最新的timestamp
+                    if community_info.get('timestamp', 0) > latest_timestamp:
+                        latest_timestamp = community_info['timestamp']
+                    
+                    # # 检查是否存在resource_url和update_url
+                    # if 'resource_url' in community_info and 'update_url' in community_info:
+                    #     # 更新或添加到composed_manifest
+                    #     composed_manifest['community_info'] = {
+                    #         "resource_url": community_info['resource_url'],
+                    #         "update_url": community_info['update_url'],
+                    #         "timestamp": latest_timestamp
+                    #     }
                 
                 # 处理meme_libs部分
                 if 'meme_libs' in manifest_data:
@@ -116,10 +131,12 @@ class CommunityService:
                             if new_timestamp > existing_timestamp:
                                 # 新条目timestamp更大，替换
                                 composed_manifest['meme_libs'][uuid] = lib_info
-              
-                
             except Exception as e:
                 print(f"Error processing manifest from {url}: {str(e)}")
+                
+        composed_manifest['community_info'] = {
+            "timestamp": latest_timestamp
+        }
         
         # 保存合并后的manifest到文件
         try:

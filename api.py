@@ -7,12 +7,14 @@ from services.image_search import IMAGE_SEARCH_SERVICE
 
 from config.settings import Config
 from config.api_settings import load_config
+from services.community_service import CommunityService
 
 import uvicorn
 
 from middleware.protected_mode import ProtectedModeMiddleware
 from middleware.rate_limiter import RateLimitMiddleware
 import re
+import json
 
 # 初始化核心组件
 config = Config()
@@ -93,6 +95,29 @@ async def search_images(request: SearchRequestEnhanced):
         )
 
         return {"results": search_result_postprocess(results)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/")
+async def root():
+    """API根目录"""
+    return {"message": "Welcome to the VVQuest API"}
+
+@app.get("/libs_manifest")
+async def get_libs_manifest():
+    
+    manifest_path = os.path.join(Config().temp_dir, "all_manifest.json")
+    if not os.path.exists(manifest_path):
+        CommunityService().reload_community_info()
+    
+    try:
+        with open(manifest_path, 'r', encoding='utf-8') as f:
+            manifest_data = json.load(f)
+        return manifest_data
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Manifest file not found")
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="Invalid JSON format in manifest file")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

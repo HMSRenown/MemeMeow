@@ -9,7 +9,6 @@ import pickle
 from config.settings import Config
 from typing import List, Optional, Union
 import numpy as np
-from FlagEmbedding import BGEM3FlagModel
 
 from tqdm import tqdm
 from services.utils import verify_folder

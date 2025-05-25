@@ -15,7 +15,19 @@ from services.resource_pack_manager import ResourcePackManager
 from services.utils import *
 from services.llm_enhance import LLMEnhance
 from services.cache_service import CacheService
+import functools
 
+def timeit(func):
+    """装饰器：监视函数运行时间"""
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        print(f"[timeit] {func.__name__} executed in {end_time - start_time:.4f} seconds")
+        return result
+    return wrapper
 
 class ImageSearch:
     def __init__(self):
@@ -64,6 +76,7 @@ class ImageSearch:
         """余弦相似度计算"""
         return np.dot(a, b)
 
+    @timeit
     def search(self,
                query: str,
                top_k: int = 5,
@@ -92,10 +105,12 @@ class ImageSearch:
 
             # 排除不在resource_pack_uuids的图片。#TODO：预加载，避免每次都循环
             if resource_pack_uuids is not None:
-                pack_uuid = self.resource_pack_manager.get_available_packs().get(img['pack_id']).get("uuid", None)
+                pack_uuid = self.resource_pack_manager.get_available_packs().get(img['pack_id']).get("manifest").get("uuid", None)
                 if pack_uuid is not None:
                     if pack_uuid not in resource_pack_uuids:
                         continue
+                else:
+                    logger.warning(f"图片 {img['filename']} 的 pack_id {img['pack_id']} 没有对应的 UUID，跳过该图片。")
 
 
 
@@ -170,15 +185,19 @@ class ImageSearch:
             if len(randomize_list) >= 2:
                 random.shuffle(randomize_list)
                 if 'hash' in return_type:
-                    pack_id = i['obj']['pack_id']
-                    hash_id = self.resource_pack_manager.available_packs.get(pack_id).get('manifest').get('contents').get('images').get('files').get(os.path.basename(i['path'])).get('hash')
-                    return_list_2 += [[i['path'], hash_id] for i in pop_similar_images(randomize_list)]
+                    popped_rand_list = pop_similar_images(randomize_list)
+                    for rand_i in popped_rand_list:
+                        pack_id = rand_i['obj']['pack_id']
+                        hash_id = self.resource_pack_manager.available_packs.get(pack_id).get('manifest').get('contents').get('images').get('files').get(os.path.basename(rand_i['path'])).get('hash')
+                        return_list_2.append([rand_i['path'], hash_id])
                 else:
-                    return_list_2 += [[i['path'], hash_id] for i in pop_similar_images(randomize_list)]
+                    return_list_2 += [i['path'] for i in pop_similar_images(randomize_list)]
             else:
                 if 'hash' in return_type:
                     pack_id = i['obj']['pack_id']
                     hash_id = self.resource_pack_manager.available_packs.get(pack_id).get('manifest').get('contents').get('images').get('files').get(os.path.basename(i['path'])).get('hash')
+                    # print(123)
+                    # print(pack_id, hash_id)
                     return_list_2.append([i['path'], hash_id])
                 else:
                     return_list_2.append(i['path'])
