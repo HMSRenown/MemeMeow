@@ -2,6 +2,8 @@ api:
   protected_mode: False
   allowed_endpoints:
     - "/search"
+    - "/libs_manifest"
+    - "/"
   rate_limit:
     enabled: False
     requests: 10        # 每分钟最大请求数

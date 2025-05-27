@@ -180,8 +180,8 @@ with left_col:
                 st.divider()
 
 with right_col:
-    st.header("社区资源包")
-    if st.button("更新社区资源包"):
+    st.header("社区资源包组")
+    if st.button("更新社区资源包组"):
         CommunityService().update_local_manifests()
     urls_config = Config().community.manifest_urls
     for k, v in urls_config.items():
@@ -217,8 +217,8 @@ with right_col:
                 with Config() as config:
                     del config.community.manifest_urls[k]
                 st.rerun()
-    with st.expander("添加社区资源包URL"):
-        new_url = st.text_input("请输入新的社区资源包URL", key="new_community_url")
+    with st.expander("添加社区资源包组URL"):
+        new_url = st.text_input("请输入新的社区资源包组URL", key="new_community_url")
         if st.button("添加URL", key="add_community_url_btn", use_container_width=True):
             if new_url:
                 with Config() as config:

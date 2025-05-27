@@ -38,8 +38,8 @@ _✨ 通过自然语言检索表情包 ✨_
 
 - **自然语言处理**: 采用嵌入模型，实现 Q&A 式的检索，能够对给出问题自动使用表情包回应。
 - **高拓展性**: 可结合 VLM 高效为图片打上标签，制作资源包并在 [Issues](https://github.com/MemeMeow-Studio/MemeMeow/issues) 中分享。
-- **便捷使用**: 提供现成的web（无法导入资源包），API使用，以及iOS捷径使用，可不用部署到本地。
-- **社区驱动**：能够在社区(WIP)分享自己制作的表情包资源包！
+- **便捷使用**: 提供现成的web（无法导入资源包），[MMIME](https://github.com/MemeMeow-Studio/MemeMeowIME)输入法使用，API使用，以及iOS捷径使用，可不用部署到本地。
+- **社区驱动**：能够在社区分享自己制作的表情包资源包！
 - 另外，**单纯使用检索功能**，若使用API无需任何花费💰
 
 
@@ -104,9 +104,6 @@ pip install -r requirements.txt
 python -m streamlit run app.py
 ```
 
-> [!NOTE]
-> 首次运行本地模型时会需要下载必要的模型文件，这可能需要一些时间。
-
 <a id="-usage"></a>
 ## 📖 Usage
 
@@ -134,32 +131,43 @@ python -m streamlit run app.py
 3. 点击 `使用VLM生成描述` 生成标签
 4. 选择合适的描述并重命名文件或直接点击 `下一张` (会自动重命名)
 
-### 导出资源包
 
-1. 检查图片已经完全标记完成
-2. 填写资源包相关信息
-3. 点击 `导出资源包` 按钮
-4. 等待生成完成后点击 `下载资源包`
-
-> [!TIP]
-> 你可以在 [Issues](https://github.com/MemeMeow-Studio/MemeMeow/issues) 中分享你的资源包，或者查看其他用户分享的资源包。
 
 ### 导入资源包 
 
-#### 社区资源包 (NEW!)
+#### 社区资源包组 (NEW!)
+
+1. 点击资源包管理页面，点击`添加社区资源包组URL`，输入资源包仓库的清单文件链接 (社区资源包仓库清单文件链接为https://raw.githubusercontent.com/MemeMeow-Studio/Memes-Community/refs/heads/main/community_manifest.json)，然后点击`添加url`。
+2. 添加成功后，点击`更新社区资源包组`，MemeMeow会自动更新社区资源包中所有表情包库的清单文件。
+3. 点击`重新扫描资源包`，社区资源包会出现在下方；启用你要使用的
+
+
 
 ##### 社区资源包工作原理
-社区资源包分为 资源包仓库更新信息community_manifest.json，表情包仓库metadata.json，和表情包库manifest.json。
+社区资源包分为 
+- 资源包组仓库更新信息community_manifest.json
+- 表情包仓库metadata.json
+- 表情包库manifest.json。
 
 点击资源包管理页面，添加一个community_manifest的url，然后点击更新按钮。每次更新，MemeMeow会对比url指向的manifest和本地manifest中，每个**表情包库**的timestamp；
 
 如果存在更新，则根据清单文件的信息，针对有更新的表情包库，重新下载表情包库的清单文件。
 
-下载完成的社区资源包跟在线资源包的管理方式一致。
+下载完成的资源包跟在线资源包的管理方式一致。
 
 示例社区清单文件链接：
 
 https://raw.githubusercontent.com/MemeMeow-Studio/Memes-Community/refs/heads/main/community_manifest.json
+
+更多详细信息，可以查看[MemeCommunity仓库](https://github.com/MemeMeow-Studio/MemesLib-Community)
+
+> Q: 社区资源包组，表情包仓库和表情包库有什么区别？
+> A: 社区资源包组可以存放多个表情包库，方便在MemeMeow中统一管理；
+> 表情包仓库只是方便存放多个表情包库，本身的文件（metadata.json）不会被除了仓库自己以外的程序使用。
+> 表情包库是管理一组表情包的最小单元，可以作为独立的`在线资源包`添加，可以被**社区资源包组仓库**管理。
+
+> Q: 能够导入多个社区资源包链接吗？
+> A: 可以！你可以自己建立一个表情包仓库，或者结构相似的文件服务器，然后用相同的方法生成资源包仓库清单文件，然后导入MemeMeow。
 
 #### 在线资源包
 
@@ -169,11 +177,15 @@ https://raw.githubusercontent.com/MemeMeow-Studio/Memes-Community/refs/heads/mai
 
 示例资源包链接：(导入时输入)
 
-https://github.com/MemeMeow-Studio/VVfromVideo/raw/main/all_vvs/manifest.json  
+https://github.com/MemeMeow-Studio/VVfromVideo/raw/main/all_vvs/manifest.json
 
 示例仓库链接：
 
-https://github.com/MemeMeow-Studio/VVfromVideo
+https://github.com/MemeMeow-Studio/MemesLib-Community
+
+> Q: 导入在线资源包功能和社区资源包组功能有什么区别？
+> A: 社区资源包组功能能够自动管理，一键更新社区资源包组仓库中管理的所有在线资源包，入口统一，更加方便。
+
 
 #### 离线资源包
 
@@ -181,10 +193,17 @@ https://github.com/MemeMeow-Studio/VVfromVideo
 > [!CAUTION]
 > 导入资源包后，需要重新生成缓存。
 
-> [!CAUTION]
-> 新版本查找图片不再从config读取。为了从旧版本迁移，请在label images选择你的图片文件夹，选择导出资源包，然后再导入Mememeow。
 
 
+### 导出资源包
+
+1. 检查图片已经完全标记完成
+2. 填写资源包相关信息
+3. 点击 `导出资源包` 按钮
+4. 等待生成完成后点击 `下载资源包`
+
+> [!TIP]
+> 你可以在 [Issues](https://github.com/MemeMeow-Studio/MemeMeow/issues) 中分享你的资源包，或者查看其他用户分享的资源包。
 
 <a id="-api"></a>
 ## 🔌 API
