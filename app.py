@@ -1,10 +1,10 @@
 import sys
 import types
-
 import streamlit as st
 import random
 import os
 import yaml
+import streamlit_authenticator as stauth
 from services.image_search import ImageSearch
 from config.settings import Config
 from base import *
@@ -36,9 +36,54 @@ def delete_all_files_in_folder(folder_path):
 
 verify_folder(os.path.join(Config().temp_dir))
 delete_all_files_in_folder(os.path.join(Config().temp_dir))
-pg = st.navigation([
-    st.Page("stpages/Mememeow.py", title="MemeMeow"),
-    st.Page("stpages/label_images.py", title="标注图片"),
-    st.Page("stpages/upload_images.py", title="上传图片"),
-    st.Page("stpages/resource_pack.py", title="资源包管理"),])
-pg.run()
+
+# 加载认证配置
+config_file = os.path.join(Config().base_dir, 'config', 'auth_config.yaml')
+enable_auth = True
+if not os.path.exists(config_file):
+    enable_auth = False
+else:
+    with open(config_file, 'r', encoding='utf-8') as f:
+        auth_config = yaml.safe_load(f)
+    enable_auth = auth_config.get('auth_enabled', False)
+
+# 检查是否启用身份验证
+if enable_auth:
+    # 创建认证器
+    authenticator = stauth.Authenticate(
+        auth_config['credentials'],
+        auth_config['cookie']['name'],
+        auth_config['cookie']['key'],
+        auth_config['cookie']['expiry_days'],
+        auth_config['preauthorized']
+    )
+
+    # 登录界面
+    name, authentication_status, username = authenticator.login('登录', 'main')
+
+    if authentication_status == False:
+        st.error('用户名或密码错误')
+    elif authentication_status == None:
+        st.warning('请输入用户名和密码')
+    elif authentication_status:
+        # 添加登出按钮
+        authenticator.logout('登出', 'sidebar')
+        st.sidebar.write(f'欢迎 *{name}*')
+        
+        # 只有登录成功后才显示页面导航
+        pg = st.navigation([
+            st.Page("stpages/Mememeow.py", title="MemeMeow"),
+            st.Page("stpages/label_images.py", title="标注图片"),
+            st.Page("stpages/upload_images.py", title="上传图片"),
+            st.Page("stpages/resource_pack.py", title="资源包管理"),
+        ])
+        pg.run()
+else:
+    # 未启用身份验证，直接显示页面导航
+    pg = st.navigation([
+        st.Page("stpages/Mememeow.py", title="MemeMeow"),
+        st.Page("stpages/label_images.py", title="标注图片"),
+        st.Page("stpages/upload_images.py", title="上传图片"),
+        st.Page("stpages/resource_pack.py", title="资源包管理"),
+    ])
+    pg.run()

@@ -1,0 +1,13 @@
+auth_enabled: false
+credentials:
+  usernames:
+    admin:
+      email: admin@example.com
+      name: Administrator
+      password: $2b$12$LK
+cookie:
+  expiry_days: 30
+  key: mememeow_auth_key
+  name: mememeow_auth_cookie
+preauthorized:
+  emails: []

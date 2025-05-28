@@ -17,3 +17,4 @@ langchain
 duckduckgo_search
 langchain_openai
 uvicorn
+streamlit-authenticator==0.2.3
