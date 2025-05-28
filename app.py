@@ -11,7 +11,7 @@ from base import *
 from loguru import logger
 
 logger.remove(handler_id=None)
-logger.add(os.path.join(Config().base_dir, os.path.join(Config().base_dir, 'Logs', "{time:YYYY-MM-DD}/{time:YYYY-MM-DD}.log")), level="TRACE", backtrace=True)
+logger.add(os.path.join(Config().base_dir, 'Logs', "{time:YYYY-MM-DD}/{time:YYYY-MM-DD}.log"), level="TRACE", backtrace=True)
 if TRACE_MODE:
     logger.add(sys.stdout, level="TRACE", backtrace=True)
 elif DEBUG_MODE:
@@ -77,7 +77,9 @@ if enable_auth:
             st.Page("stpages/upload_images.py", title="上传图片"),
             st.Page("stpages/resource_pack.py", title="资源包管理"),
         ])
-        pg.run()
+        # pg.run()
+    else:
+        st.error('身份验证失败，请重试')
 else:
     # 未启用身份验证，直接显示页面导航
     pg = st.navigation([
@@ -86,4 +88,4 @@ else:
         st.Page("stpages/upload_images.py", title="上传图片"),
         st.Page("stpages/resource_pack.py", title="资源包管理"),
     ])
-    pg.run()
+    # pg.run()
