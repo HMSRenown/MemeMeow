@@ -7,12 +7,15 @@ from services.image_search import IMAGE_SEARCH_SERVICE
 from config.settings import Config
 
 # 页面配置
-st.set_page_config(
-    page_title="Mememeow",
-    page_icon="🐱",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+try:
+    st.set_page_config(
+        page_title="Mememeow",
+        page_icon="🐱",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+except Exception as e:
+    pass
 
 def save_config_yaml(api_key: str, base_url: str) -> None:
     """保存API key到config.yaml"""

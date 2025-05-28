@@ -67,8 +67,8 @@ if enable_auth:
         st.warning('请输入用户名和密码')
     elif authentication_status:
         # 添加登出按钮
-        authenticator.logout('登出', 'sidebar')
-        st.sidebar.write(f'欢迎 *{name}*')
+        # authenticator.logout('登出', 'sidebar')
+        # st.sidebar.write(f'欢迎 *{name}*')
         
         # 只有登录成功后才显示页面导航
         pg = st.navigation([
@@ -77,7 +77,7 @@ if enable_auth:
             st.Page("stpages/upload_images.py", title="上传图片"),
             st.Page("stpages/resource_pack.py", title="资源包管理"),
         ])
-        # pg.run()
+        pg.run()
     else:
         st.error('身份验证失败，请重试')
 else:
@@ -88,4 +88,4 @@ else:
         st.Page("stpages/upload_images.py", title="上传图片"),
         st.Page("stpages/resource_pack.py", title="资源包管理"),
     ])
-    # pg.run()
+    pg.run()

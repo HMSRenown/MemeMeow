@@ -21,12 +21,15 @@ COVERS_DIR = os.path.join(Config().get_temp_path('covers'))
 # 封面图片尺寸
 COVER_SIZE = (512, 512)
 ITEMS_PER_PAGE = 30  # 每页显示的文件数
-st.set_page_config(
-    page_title="LabelImages",
-    page_icon="🌐",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+try:
+    st.set_page_config(
+        page_title="LabelImages",
+        page_icon="🌐",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+except Exception as e:
+    pass
 
 if 'image_folder_name' not in st.session_state:
     st.session_state.image_folder_name = 'data/images'  # 默认使用原始图片目录
