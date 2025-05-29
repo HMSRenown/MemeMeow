@@ -152,7 +152,11 @@ class ImageSearch:
                     # 联网检查
                     url = self.resource_pack_manager.enabled_packs[i[0]['obj']['pack_id']]['url']
                     if url:
-                        rel_path = re.sub(r'^.*?resource_packs\\[^\\]+\\', '', i[0]['path'])
+                        if os.name == 'nt':  # Windows
+                            rel_path = re.sub(r'^.*?resource_packs\\[^\\]+\\', '', i[0]['path'])
+                        else:  # Unix-like systems (Linux, macOS)
+                            rel_path = re.sub(r'^.*?resource_packs/[^/]+/', '', i[0]['path'])
+                        # rel_path = re.sub(r'^.*?resource_packs\\[^\\]+\\', '', i[0]['path'])
                         download_list.append([os.path.join(url, rel_path), i[0]['path']])
                         # if not download_file(os.path.join(url, rel_path), i[0]['path']):
                         #     continue
